@@ -8,17 +8,45 @@
 import SwiftUI
 
 struct ContentView: View {
+    
+    init() {
+        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
+    }
+    
+    @State private var selectedOption = 0
+    private let options = ["All", "Favorites", "Blocked"]
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        ScrollView {
+            VStack(spacing: 10) {
+                VStack {
+                    Picker("Options", selection: $selectedOption) {
+                        ForEach(0..<options.count, id: \.self) { index in
+                            Text(options[index])
+                                .tag(index)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                }
+                               
+                SupplementaryCell()
+                
+                ForEach(1...10, id: \.self) { index in
+                    ArticleCell()
+                }
+
+                
+            }
+            .padding(.horizontal)
         }
-        .padding()
+        .background(.backgroundPrimary)
+        .navigationBarTitle("News", displayMode: .large)
     }
 }
 
 #Preview {
-    ContentView()
+    NavigationView {
+        ContentView()
+    }
 }
