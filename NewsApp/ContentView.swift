@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct ContentView: View {
-    
     init() {
         UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
         UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
@@ -16,10 +15,30 @@ struct ContentView: View {
     
     @StateObject private var viewModel = NewsViewModel()
     
-    @State private var selectedOption = 0
-    private let options = ["All", "Favorites", "Blocked"]
-    
     var body: some View {
+        ZStack {
+            NavigationView {
+                articleList
+                    .navigationBarTitle("News", displayMode: .large)
+                    .background(.backgroundPrimary)
+
+            }
+            
+            if viewModel.isLoading {
+                ZStack {
+                    Color.clear
+                        .background(.ultraThinMaterial)
+                    
+                    ProgressView()
+                        .scaleEffect(1.5)
+                        .padding()
+                }
+            }
+        }
+    }
+    
+    
+    private var articleList: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
                 Picker("Options", selection: $viewModel.selectedOption) {
@@ -29,7 +48,8 @@ struct ContentView: View {
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
-
+                .padding(.bottom, 8)
+                
                 ForEach(Array(viewModel.filteredArticles.enumerated()), id: \.element.id) { index, article in
                     VStack(spacing: 10) {
                         ArticleCell(article: article, viewModel: viewModel)
@@ -44,13 +64,9 @@ struct ContentView: View {
                         }
                     }
                 }
-                
-                
             }
             .padding(.horizontal)
         }
-        .background(.backgroundPrimary)
-        .navigationBarTitle("News", displayMode: .large)
     }
 }
 
