@@ -14,7 +14,7 @@ struct Article: Identifiable {
     let description: String
     let category: String
     let date: String
-    let image: Image
+    let imageURLString: String
     let URLString: String
     var isFavorite: Bool
     var isBlocked: Bool

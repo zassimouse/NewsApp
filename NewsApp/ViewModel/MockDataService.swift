@@ -20,7 +20,7 @@ class MockDataService {
                 description: "City bike shares are now open for the summer season",
                 category: "City",
                 date: "Apr 17, 2025",
-                image: Image("car"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://www.nytimes.com/2025/04/14/us/harvard-trump-reject-demands.html",
                 isFavorite: true,
                 isBlocked: false
@@ -31,7 +31,7 @@ class MockDataService {
                 description: "The city council announces a new central park",
                 category: "City",
                 date: "Apr 15, 2025",
-                image: Image(systemName: "leaf"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/2",
                 isFavorite: false,
                 isBlocked: false
@@ -42,7 +42,7 @@ class MockDataService {
                 description: "Annual developer conference starts next week",
                 category: "Tech",
                 date: "Apr 10, 2025",
-                image: Image(systemName: "laptopcomputer"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/3",
                 isFavorite: false,
                 isBlocked: true
@@ -53,7 +53,7 @@ class MockDataService {
                 description: "Heavy rains expected this weekend",
                 category: "Weather",
                 date: "Apr 8, 2025",
-                image: Image(systemName: "cloud.rain"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/4",
                 isFavorite: true,
                 isBlocked: false
@@ -64,7 +64,7 @@ class MockDataService {
                 description: "Public transport workers announce strike",
                 category: "Transport",
                 date: "Apr 5, 2025",
-                image: Image(systemName: "bus"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/5",
                 isFavorite: false,
                 isBlocked: false
@@ -75,7 +75,7 @@ class MockDataService {
                 description: "City bike shares are now open for the summer season",
                 category: "City",
                 date: "Apr 17, 2025",
-                image: Image("car"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/1",
                 isFavorite: true,
                 isBlocked: false
@@ -86,7 +86,7 @@ class MockDataService {
                 description: "The city council announces a new central park",
                 category: "City",
                 date: "Apr 15, 2025",
-                image: Image(systemName: "leaf"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/2",
                 isFavorite: false,
                 isBlocked: false
@@ -97,7 +97,7 @@ class MockDataService {
                 description: "Annual developer conference starts next week",
                 category: "Tech",
                 date: "Apr 10, 2025",
-                image: Image(systemName: "laptopcomputer"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/3",
                 isFavorite: false,
                 isBlocked: true
@@ -108,7 +108,7 @@ class MockDataService {
                 description: "Heavy rains expected this weekend",
                 category: "Weather",
                 date: "Apr 8, 2025",
-                image: Image(systemName: "cloud.rain"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/4",
                 isFavorite: true,
                 isBlocked: false
@@ -119,7 +119,7 @@ class MockDataService {
                 description: "Public transport workers announce strike",
                 category: "Transport",
                 date: "Apr 5, 2025",
-                image: Image(systemName: "bus"),
+                imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
                 URLString: "https://example.com/news/5",
                 isFavorite: false,
                 isBlocked: false

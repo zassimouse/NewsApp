@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Kingfisher
 
 struct ArticleCell: View {
     let article: Article
@@ -13,7 +14,14 @@ struct ArticleCell: View {
     
     var body: some View {
         HStack(alignment: .top) {
-            article.image
+            
+//            article.image
+//                .resizable()
+//                .clipped()
+//                .scaledToFill()
+//                .frame(width: 94, height: 72)
+//                .clipShape(RoundedRectangle(cornerRadius: 4))
+            KFImage(URL(string: article.imageURLString)) // Assuming article.image is a URL string
                 .resizable()
                 .clipped()
                 .scaledToFill()
@@ -80,7 +88,7 @@ struct ArticleCell_Previews: PreviewProvider {
             description: "City bike shares are now open for the summer season",
             category: "City",
             date: "Apr 17, 2025",
-            image: Image(systemName: "bicycle"),
+            imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
             URLString: "",
             isFavorite: false,
             isBlocked: false
