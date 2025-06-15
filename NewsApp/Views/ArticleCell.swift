@@ -8,30 +8,52 @@
 import SwiftUI
 
 struct ArticleCell: View {
+    let article: Article
+    @ObservedObject var viewModel: NewsViewModel
+    
     var body: some View {
         HStack(alignment: .top) {
-            Image("car")
+            article.image
                 .resizable()
                 .clipped()
+                .scaledToFill()
                 .frame(width: 94, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
+            
             VStack(alignment: .leading) {
-                Text("Bike season begins")
+                Text(article.title)
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.labelPrimary)
                 Spacer()
-                Text("City bike shares ")
+                Text(article.description)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.labelSecondary)
                 Spacer()
-
-                Text("City • Apr 17,2025")
+                Text("\(article.category) • \(article.date)")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.labelSecondary)
             }
+            
             Spacer()
-            Button {
+            
+            Menu {
+                Button {
+                    viewModel.toggleFavorite(for: article.id)
+                } label: {
+                    Label(
+                        article.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                        systemImage: article.isFavorite ? "heart.fill" : "heart"
+                    )
+                }
                 
+                Button(role: .destructive) {
+                    viewModel.toggleBlock(for: article.id)
+                } label: {
+                    Label(
+                        article.isBlocked ? "Unblock" : "Block",
+                        systemImage: article.isBlocked ? "eye.slash.fill" : "eye.slash"
+                    )
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .font(.system(size: 24))
@@ -46,6 +68,27 @@ struct ArticleCell: View {
     }
 }
 
-#Preview {
-    ArticleCell()
+//#Preview {
+//    ArticleCell()
+//}
+
+struct ArticleCell_Previews: PreviewProvider {
+    static var previews: some View {
+        let mockArticle = Article(
+            id: "1",
+            title: "Bike season begins",
+            description: "City bike shares are now open for the summer season",
+            category: "City",
+            date: "Apr 17, 2025",
+            image: Image(systemName: "bicycle"),
+            URLString: "",
+            isFavorite: false,
+            isBlocked: false
+        )
+        
+        return ArticleCell(
+            article: mockArticle,
+            viewModel: NewsViewModel()
+        )
+    }
 }
