@@ -57,7 +57,7 @@ final class NewsAPIService {
                         title: result.title,
                         description: result.abstract,
                         category: result.section,
-                        date: result.published_date,
+                        date: result.published_date.formattedDate() ?? result.published_date,
                         imageURLString: result.media.first?.mediaMetadata.first?.url ?? "",
                         URLString: result.url,
                         isFavorite: false,
