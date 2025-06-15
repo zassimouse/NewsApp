@@ -6,43 +6,56 @@
 //
 
 import SwiftUI
+import Combine
 
 class NewsViewModel: ObservableObject {
     @Published private(set) var articles: [Article] = []
     @Published private(set) var filteredArticles: [Article] = []
     @Published var selectedOption: Int = 0 {
         didSet {
-            print(selectedOption)
             applyFilter()
         }
     }
+    @Published var isLoading = true
+    @Published var errorMessage: String?
+    
+    private var cancellables = Set<AnyCancellable>()
     
     let options = ["All", "Favorites", "Blocked"]
+    let apiService = NewsAPIService.shared
     
     init() {
-        loadArticles()
+        loadArticles(period: 7)
+    }
+    
+    func loadArticles(period: Int) {
+        isLoading = true
+        errorMessage = nil
+        
+        apiService.fetchArticles(period: period)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                self?.isLoading = false
+                switch completion {
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    // Fallback to mock data if API fails
+                    self?.articles = MockDataService.shared.getMockArticles()
+                    self?.applyFilter()
+                case .finished:
+                    break
+                }
+            } receiveValue: { [weak self] articles in
+                self?.articles = articles
+                self?.applyFilter()
+            }
+            .store(in: &cancellables)
     }
     
 //    private func loadArticles() {
 //        articles = MockDataService.shared.getMockArticles()
-//        filterArticles()
+//        applyFilter()
 //    }
-//    
-//    private func filterArticles() {
-//        switch selectedOption {
-//        case 1:
-//            filteredArticles = articles.filter { $0.isFavorite && !$0.isBlocked }
-//        case 2:
-//            filteredArticles = articles.filter { $0.isBlocked }
-//        default:
-//            filteredArticles = articles.filter { !$0.isBlocked }
-//        }
-//    }
-    
-    private func loadArticles() {
-        articles = MockDataService.shared.getMockArticles()
-        applyFilter()
-    }
     
     private func applyFilter() {
         switch selectedOption {
