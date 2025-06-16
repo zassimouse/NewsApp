@@ -16,6 +16,8 @@ final class NewsAPIService {
     static let shared = NewsAPIService()
     private let baseURL = "https://us-central1-server-side-functions.cloudfunctions.net/nytimes"
     
+    private init() { }
+    
     func fetchArticles(period: Int) -> AnyPublisher<[Article], Error> {
         guard let url = URL(string: baseURL) else {
             return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()

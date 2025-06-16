@@ -9,6 +9,9 @@ import SwiftUI
 import Kingfisher
 
 struct ArticleCell: View {
+    @State private var showBlockAlert = false
+    @State private var blockAction: (() -> Void)?
+    
     let article: Article
     @ObservedObject var viewModel: NewsViewModel
     
@@ -35,22 +38,55 @@ struct ArticleCell: View {
             }
             Spacer()
             Menu {
-                Button {
-                    viewModel.toggleFavorite(for: article.id)
-                } label: {
-                    Label(
-                        article.isFavorite ? "Remove from Favorites" : "Add to Favorites",
-                        systemImage: article.isFavorite ? "heart.fill" : "heart"
-                    )
-                }
-                
-                Button(role: .destructive) {
-                    viewModel.toggleBlock(for: article.id)
-                } label: {
-                    Label(
-                        article.isBlocked ? "Unblock" : "Block",
-                        systemImage: article.isBlocked ? "eye.slash.fill" : "eye.slash"
-                    )
+                switch viewModel.selectedOption {
+                case 0: // All
+                    Button {
+                        viewModel.toggleFavorite(for: article.id)
+                    } label: {
+                        Label(
+                            article.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                            systemImage: article.isFavorite ? "heart.slash" : "heart"
+                        )
+                    }
+                    
+                    Button(role: .destructive) {
+                        blockAction = {
+                            viewModel.toggleBlock(for: article.id)
+                        }
+                        showBlockAlert = true
+                    } label: {
+                        Label("Block", systemImage: "nosign")
+                    }
+                    
+                case 1: // Favorites
+                    Button {
+                        viewModel.toggleFavorite(for: article.id)
+                    } label: {
+                        Label("Remove from Favorites", systemImage: "heart.slash")
+                    }
+                    
+                    Button(role: .destructive) {
+                        blockAction = {
+                            viewModel.toggleBlock(for: article.id)
+                        }
+                        showBlockAlert = true
+                    } label: {
+                        Label("Block", systemImage: "nosign")
+                    }
+                    
+                case 2: // Blocked
+                    Button {
+                        blockAction = {
+                            viewModel.toggleBlock(for: article.id)
+                        }
+                        viewModel.isLoading = true
+                        showBlockAlert = true
+                    } label: {
+                        Label("Unblock", systemImage: "lock.open")
+                    }
+                    
+                default:
+                    EmptyView()
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -63,6 +99,16 @@ struct ArticleCell: View {
         .frame(height: 96)
         .background(.backgroundSecondary)
         .cornerRadius(16)
+        .alert(isPresented: $showBlockAlert) {
+             Alert(
+                 title: Text(article.isBlocked ? "Unblock Article" : "Block Article"),
+                 message: Text(article.isBlocked ? "Are you sure you want to unblock this article?" : "Are you sure you want to block this article?"),
+                 primaryButton: .destructive(Text(article.isBlocked ? "Unblock" : "Block")) {
+                     blockAction?()
+                 },
+                 secondaryButton: .cancel()
+             )
+         }
     }
 }
 

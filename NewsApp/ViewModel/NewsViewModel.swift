@@ -11,20 +11,27 @@ import Combine
 class NewsViewModel: ObservableObject {
     @Published private(set) var articles: [Article] = []
     @Published private(set) var filteredArticles: [Article] = []
+    @Published private(set) var supplementaryItems: [SupplementaryItem] = []
+
     @Published var selectedOption: Int = 0 {
         didSet {
             applyFilter()
         }
     }
     @Published var isLoading = true
+    @Published var isLoadingSupplementary = false
+    
     @Published var errorMessage: String?
     
     private var cancellables = Set<AnyCancellable>()
     
     let options = ["All", "Favorites", "Blocked"]
     let apiService = NewsAPIService.shared
+    let supplementaryAPIService = SupplementaryAPIService.shared
+
     
     init() {
+        loadSupplementaryItems()
         loadArticles(period: 7)
     }
     
@@ -39,8 +46,6 @@ class NewsViewModel: ObservableObject {
                 switch completion {
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription
-                    // Fallback to mock data if API fails
-                    self?.articles = MockDataService.shared.getMockArticles()
                     self?.applyFilter()
                 case .finished:
                     break
@@ -52,10 +57,22 @@ class NewsViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-//    private func loadArticles() {
-//        articles = MockDataService.shared.getMockArticles()
-//        applyFilter()
-//    }
+    func loadSupplementaryItems() {
+        isLoadingSupplementary = true
+        
+        supplementaryAPIService.fetchSupplementaryItems()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                self?.isLoadingSupplementary = false
+                if case .failure(let error) = completion {
+                    print("Supplementary items loading failed: \(error.localizedDescription)")
+                    // You can add mock supplementary items here if needed
+                }
+            } receiveValue: { [weak self] items in
+                self?.supplementaryItems = items
+            }
+            .store(in: &cancellables)
+    }
     
     private func applyFilter() {
         switch selectedOption {

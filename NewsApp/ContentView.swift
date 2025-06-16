@@ -8,39 +8,72 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var viewModel = NewsViewModel()
+    
     init() {
         UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
         UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
     }
-    
-    @StateObject private var viewModel = NewsViewModel()
-    
+        
     var body: some View {
         ZStack {
             NavigationView {
                 articleList
                     .navigationBarTitle("News", displayMode: .large)
                     .background(.backgroundPrimary)
-
             }
             
             if viewModel.isLoading {
                 ZStack {
                     Color.clear
                         .background(.ultraThinMaterial)
-                    
                     ProgressView()
                         .scaleEffect(1.5)
-                        .padding()
                 }
             }
         }
     }
     
+    private var emptyStateView: some View {
+        Group {
+            switch viewModel.selectedOption {
+            case 1:
+                emptyStateContent(icon: "heart.circle.fill", text: "No Favorite News", showButton: false)
+            case 2:
+                emptyStateContent(icon: "nosign", text: "No Blocked News", showButton: false)
+            default:
+                emptyStateContent(icon: "exclamationmark.circle.fill", text: "No News Available", showButton: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func emptyStateContent(icon: String, text: String, showButton: Bool) -> some View {
+        VStack {
+            Spacer()
+            VStack {
+                Image(systemName: icon)
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundStyle(.accentPrimary)
+                Spacer()
+                Text(text)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.labelPrimary)
+                if showButton {
+                    Spacer()
+                    PrimaryButton(title: "Refresh", symbolName: "arrow.left", action: {
+                        viewModel.loadArticles(period: 7)
+                    })
+                }
+            }
+            .frame(height: showButton ? 120 : 76)
+            Spacer()
+        }
+    }
     
     private var articleList: some View {
         ScrollView {
-            LazyVStack(spacing: 10) {
+            VStack {
                 Picker("Options", selection: $viewModel.selectedOption) {
                     ForEach(0..<viewModel.options.count, id: \.self) { index in
                         Text(viewModel.options[index])
@@ -50,24 +83,37 @@ struct ContentView: View {
                 .pickerStyle(SegmentedPickerStyle())
                 .padding(.bottom, 8)
                 
-                ForEach(Array(viewModel.filteredArticles.enumerated()), id: \.element.id) { index, article in
-                    VStack(spacing: 10) {
-                        ArticleCell(article: article, viewModel: viewModel)
-                            .onTapGesture {
-                                if let url = URL(string: article.URLString) {
-                                    UIApplication.shared.open(url)
+                if viewModel.filteredArticles.isEmpty {
+                    emptyStateView
+                        .frame(minHeight: 400)
+                } else {
+                    LazyVStack(spacing: 10) {
+                        ForEach(Array(viewModel.filteredArticles.enumerated()), id: \.element.id) { index, article in
+                            VStack(spacing: 10) {
+                                ArticleCell(article: article, viewModel: viewModel)
+                                    .onTapGesture {
+                                        if let url = URL(string: article.URLString) {
+                                            UIApplication.shared.open(url)
+                                        }
+                                    }
+                                
+                                if viewModel.selectedOption == 0 && (index + 1) % 2 == 0 && index != viewModel.filteredArticles.count - 1 {
+                                    if !viewModel.supplementaryItems.isEmpty {
+                                        let supplementaryIndex = (index / 2) % viewModel.supplementaryItems.count
+                                        SupplementaryCell(item: viewModel.supplementaryItems[supplementaryIndex])
+                                    }
                                 }
                             }
-                        
-                        if viewModel.selectedOption == 0 && (index + 1) % 2 == 0 && index != viewModel.filteredArticles.count - 1 {
-                            SupplementaryCell()
                         }
                     }
                 }
             }
             .padding(.horizontal)
         }
+        .refreshable {
+        }
     }
+
 }
 
 #Preview {
