@@ -14,7 +14,7 @@ struct ContentView: View {
         UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
         UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.labelPrimary]
     }
-        
+    
     var body: some View {
         ZStack {
             NavigationView {
@@ -23,14 +23,30 @@ struct ContentView: View {
                     .background(.backgroundPrimary)
             }
             
-            if viewModel.isLoading {
-                ZStack {
-                    Color.clear
-                        .background(.ultraThinMaterial)
-                    ProgressView()
-                        .scaleEffect(1.5)
-                }
+            blurOverlay
+            
+            if viewModel.showAlert {
+                Color.clear
+                    .alert("Error", isPresented: $viewModel.showAlert) {
+                        Button("OK", role: .cancel) { }
+                    } message: {
+                        Text(viewModel.alertMessage)
+                    }
             }
+            
+            if viewModel.isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var blurOverlay: some View {
+        if viewModel.shouldShowBlur {
+            Color.clear
+                .background(.ultraThinMaterial)
+                .ignoresSafeArea()
         }
     }
     
@@ -46,7 +62,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     @ViewBuilder
     private func emptyStateContent(icon: String, text: String, showButton: Bool) -> some View {
         VStack {
@@ -89,19 +105,17 @@ struct ContentView: View {
                 } else {
                     LazyVStack(spacing: 10) {
                         ForEach(Array(viewModel.filteredArticles.enumerated()), id: \.element.id) { index, article in
-                            VStack(spacing: 10) {
-                                ArticleCell(article: article, viewModel: viewModel)
-                                    .onTapGesture {
-                                        if let url = URL(string: article.URLString) {
-                                            UIApplication.shared.open(url)
-                                        }
+                            ArticleCell(article: article, viewModel: viewModel)
+                                .onTapGesture {
+                                    if let url = URL(string: article.URLString) {
+                                        UIApplication.shared.open(url)
                                     }
-                                
-                                if viewModel.selectedOption == 0 && (index + 1) % 2 == 0 && index != viewModel.filteredArticles.count - 1 {
-                                    if !viewModel.supplementaryItems.isEmpty {
-                                        let supplementaryIndex = (index / 2) % viewModel.supplementaryItems.count
-                                        SupplementaryCell(item: viewModel.supplementaryItems[supplementaryIndex])
-                                    }
+                                }
+                            
+                            if viewModel.selectedOption == 0 && (index + 1) % 2 == 0 && index != viewModel.filteredArticles.count - 1 {
+                                if !viewModel.supplementaryItems.isEmpty {
+                                    let supplementaryIndex = (index / 2) % viewModel.supplementaryItems.count
+                                    SupplementaryCell(item: viewModel.supplementaryItems[supplementaryIndex])
                                 }
                             }
                         }
@@ -113,7 +127,7 @@ struct ContentView: View {
         .refreshable {
         }
     }
-
+    
 }
 
 #Preview {

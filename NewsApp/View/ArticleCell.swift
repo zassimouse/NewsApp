@@ -39,7 +39,7 @@ struct ArticleCell: View {
             Spacer()
             Menu {
                 switch viewModel.selectedOption {
-                case 0: // All
+                case 0:
                     Button {
                         viewModel.toggleFavorite(for: article.id)
                     } label: {
@@ -51,6 +51,7 @@ struct ArticleCell: View {
                     
                     Button(role: .destructive) {
                         blockAction = {
+                            print("block toggled cell")
                             viewModel.toggleBlock(for: article.id)
                         }
                         showBlockAlert = true
@@ -58,7 +59,7 @@ struct ArticleCell: View {
                         Label("Block", systemImage: "nosign")
                     }
                     
-                case 1: // Favorites
+                case 1:
                     Button {
                         viewModel.toggleFavorite(for: article.id)
                     } label: {
@@ -79,7 +80,6 @@ struct ArticleCell: View {
                         blockAction = {
                             viewModel.toggleBlock(for: article.id)
                         }
-                        viewModel.isLoading = true
                         showBlockAlert = true
                     } label: {
                         Label("Unblock", systemImage: "lock.open")
@@ -104,11 +104,14 @@ struct ArticleCell: View {
                  title: Text(article.isBlocked ? "Unblock Article" : "Block Article"),
                  message: Text(article.isBlocked ? "Are you sure you want to unblock this article?" : "Are you sure you want to block this article?"),
                  primaryButton: .destructive(Text(article.isBlocked ? "Unblock" : "Block")) {
+                     print("hi")
                      blockAction?()
                  },
-                 secondaryButton: .cancel()
+                 secondaryButton: .cancel() {
+                 }
              )
          }
+        
     }
 }
 

@@ -18,7 +18,36 @@ final class NewsAPIService {
     
     private init() { }
     
+    var debugMode: Bool = false
+    var forceErrorType: APIErrorType = .unauthorized
+    
+    enum APIErrorType {
+        case invalidURL
+        case unauthorized
+        case serverError
+        case randomError
+    }
+    
     func fetchArticles(period: Int) -> AnyPublisher<[Article], Error> {
+        if debugMode {
+            // Return a mock error for testing
+            switch forceErrorType {
+            case .invalidURL:
+                return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
+            case .unauthorized:
+                return Fail(error: APIError(message: "Unauthorized (401)"))
+                    .delay(for: .seconds(1), scheduler: DispatchQueue.main) // Simulate network delay
+                    .eraseToAnyPublisher()
+            case .serverError:
+                return Fail(error: APIError(message: "Server Error (500)"))
+                    .eraseToAnyPublisher()
+            case .randomError:
+                return Fail(error: APIError(message: "Random Network Error"))
+                    .eraseToAnyPublisher()
+            }
+        }
+        
+        
         guard let url = URL(string: baseURL) else {
             return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
         }

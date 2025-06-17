@@ -19,9 +19,19 @@ class NewsViewModel: ObservableObject {
         }
     }
     @Published var isLoading = true
+    @Published var isPresentingAlert = false
     @Published var isLoadingSupplementary = false
     
     @Published var errorMessage: String?
+    @Published var isShowingCellAlert = false
+
+    
+    @Published var showAlert = false
+    @Published var alertMessage = ""
+    
+    var shouldShowBlur: Bool {
+        isPresentingAlert || isLoading || showAlert || isShowingCellAlert
+    }
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -45,7 +55,8 @@ class NewsViewModel: ObservableObject {
                 self?.isLoading = false
                 switch completion {
                 case .failure(let error):
-                    self?.errorMessage = error.localizedDescription
+                    self?.alertMessage = error.localizedDescription
+                    self?.showAlert = true
                     self?.applyFilter()
                 case .finished:
                     break
@@ -66,7 +77,6 @@ class NewsViewModel: ObservableObject {
                 self?.isLoadingSupplementary = false
                 if case .failure(let error) = completion {
                     print("Supplementary items loading failed: \(error.localizedDescription)")
-                    // You can add mock supplementary items here if needed
                 }
             } receiveValue: { [weak self] items in
                 self?.supplementaryItems = items
@@ -93,6 +103,7 @@ class NewsViewModel: ObservableObject {
     }
     
     func toggleBlock(for articleId: String) {
+        print("block toggled")
         if let index = articles.firstIndex(where: { $0.id == articleId }) {
             articles[index].isBlocked.toggle()
             applyFilter() // Re-filter after change
