@@ -8,6 +8,30 @@
 import SwiftUI
 import Combine
 
+enum AlertError: String {
+    case somethingWentWrong = "Something went wrong"
+    case noInternetConnection = "No internet connection"
+    
+    static func fromAPIError(_ error: Error) -> AlertError {
+        if let apiError = error as? NewsAPIService.APIErrorType {
+            switch apiError {
+            case .networkError(let urlError) where urlError.code == .notConnectedToInternet:
+                return .noInternetConnection
+            default:
+                return .somethingWentWrong
+            }
+        } else if let apiError = error as? SupplementaryAPIService.APIError {
+            switch apiError {
+            case .networkError(let urlError) where urlError.code == .notConnectedToInternet:
+                return .noInternetConnection
+            default:
+                return .somethingWentWrong
+            }
+        }
+        return .somethingWentWrong
+    }
+}
+
 final class NewsViewModel: ObservableObject {
     
     enum FilterOption: Int, CaseIterable {
@@ -49,6 +73,7 @@ final class NewsViewModel: ObservableObject {
     @Published var showBlockAlert = false
     @Published var blockAlertTitle = ""
     @Published var blockAlertMessage = ""
+    @Published var blockAlertButtonTitle = ""
     @Published var blockAlertAction: (() -> Void)?
     
     var shouldShowBlur: Bool {
@@ -70,9 +95,11 @@ final class NewsViewModel: ObservableObject {
         if article.isBlocked {
             blockAlertTitle = "Do you want to unblock?"
             blockAlertMessage = "Confirm to unblock this news source"
+            blockAlertButtonTitle = "Unblock"
         } else {
             blockAlertTitle = "Do you want to block?"
             blockAlertMessage = "Confirm to hide this news source"
+            blockAlertButtonTitle = "Block"
         }
         
         blockAlertAction = { [weak self] in
@@ -92,22 +119,15 @@ final class NewsViewModel: ObservableObject {
                 self?.isLoadingNews = false
                 switch completion {
                 case .failure(let error):
-                    self?.alertMessage = error.localizedDescription
+                    let alertError = AlertError.fromAPIError(error)
+                    self?.alertMessage = alertError.rawValue
                     self?.showAlert = true
-                    self?.applyFilter()
                 case .finished:
                     break
                 }
             } receiveValue: { [weak self] articles in
                 self?.articles = articles
                 self?.applyFilter()
-                
-                // Print name and image URL for each article
-                for article in articles {
-                    print("Article Name: \(article.title)")
-                    print("Image URL: \(article.imageURLString)")
-                    print("------")
-                }
             }
             .store(in: &cancellables)
     }
@@ -120,7 +140,9 @@ final class NewsViewModel: ObservableObject {
             .sink { [weak self] completion in
                 self?.isLoadingSupplementary = false
                 if case .failure(let error) = completion {
-                    print("Supplementary items loading failed: \(error.localizedDescription)")
+                    let alertError = AlertError.fromAPIError(error)
+                    self?.alertMessage = alertError.rawValue
+                    self?.showAlert = true
                 }
             } receiveValue: { [weak self] items in
                 self?.supplementaryItems = items
@@ -137,14 +159,6 @@ final class NewsViewModel: ObservableObject {
         case .blocked:
             filteredArticles = articles.filter { $0.isBlocked }
         }
-        
-        filteredArticles.sort { $0.date > $1.date }
-    }
-    
-    private func dateFromString(_ dateString: String) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MMM d, yyyy"
-        return dateFormatter.date(from: dateString)
     }
     
     func toggleFavorite(for articleId: String) {

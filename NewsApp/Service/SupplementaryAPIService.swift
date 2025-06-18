@@ -14,31 +14,67 @@ final class SupplementaryAPIService {
     
     private init() { }
     
-    func fetchSupplementaryItems() -> AnyPublisher<[SupplementaryBlock], Error> {
+    var debugMode: Bool = false
+    var forceErrorType: APIServiceError = .networkError(URLError(.notConnectedToInternet))
+    
+    func fetchSupplementaryItems() -> AnyPublisher<[SupplementaryBlock], APIServiceError> {
+        if debugMode {
+            switch forceErrorType {
+            case .invalidURL:
+                return Fail(error: .invalidURL).eraseToAnyPublisher()
+            case .unauthorized:
+                return Fail(error: .unauthorized)
+                    .delay(for: .seconds(3), scheduler: DispatchQueue.main)
+                    .eraseToAnyPublisher()
+            case .serverError:
+                return Fail(error: .serverError(statusCode: 500)).eraseToAnyPublisher()
+            case .decodingError:
+                return Fail(error: .decodingError(description: "Debug decoding error")).eraseToAnyPublisher()
+            case .networkError:
+                return Fail(error: .networkError(URLError(.notConnectedToInternet))).eraseToAnyPublisher()
+            case .unknownError:
+                return Fail(error: .unknownError).eraseToAnyPublisher()
+            }
+        }
+        
         guard let url = URL(string: baseURL) else {
-            return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
+            return Fail(error: .invalidURL).eraseToAnyPublisher()
         }
         
         var request = URLRequest(url: url)
         request.addValue("denis-haritonenko", forHTTPHeaderField: "authorization")
         
         return URLSession.shared.dataTaskPublisher(for: request)
+            .mapError { error -> APIServiceError in
+                return .networkError(error)
+            }
             .tryMap { data, response -> Data in
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    throw APIError(message: "Invalid response")
+                    throw APIServiceError.unknownError
                 }
                 
-                if httpResponse.statusCode == 401 {
-                    throw APIError(message: "Unauthorized")
+                switch httpResponse.statusCode {
+                case 200...299:
+                    return data
+                case 401:
+                    throw APIServiceError.unauthorized
+                case 400...499, 500...599:
+                    throw APIServiceError.serverError(statusCode: httpResponse.statusCode)
+                default:
+                    throw APIServiceError.unknownError
                 }
-                
-                if !(200...299).contains(httpResponse.statusCode) {
-                    throw APIError(message: "Server error: \(httpResponse.statusCode)")
-                }
-                
-                return data
             }
             .decode(type: SupplementaryResponse.self, decoder: JSONDecoder())
+            .mapError { error -> APIServiceError in
+                switch error {
+                case let apiError as APIServiceError:
+                    return apiError
+                case let decodingError as DecodingError:
+                    return .decodingError(description: decodingError.localizedDescription)
+                default:
+                    return .unknownError
+                }
+            }
             .map { $0.results }
             .eraseToAnyPublisher()
     }

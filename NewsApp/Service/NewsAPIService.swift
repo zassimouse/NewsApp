@@ -8,10 +8,6 @@
 import Foundation
 import Combine
 
-struct APIError: Error {
-    let message: String
-}
-
 final class NewsAPIService {
     static let shared = NewsAPIService()
     private let baseURL = "https://us-central1-server-side-functions.cloudfunctions.net/nytimes"
@@ -19,36 +15,30 @@ final class NewsAPIService {
     private init() { }
     
     var debugMode: Bool = false
-    var forceErrorType: APIErrorType = .unauthorized
+    var forceErrorType: APIServiceError = .networkError(URLError(.notConnectedToInternet))
     
-    enum APIErrorType {
-        case invalidURL
-        case unauthorized
-        case serverError
-        case randomError
-    }
-    
-    func fetchArticles(period: Int) -> AnyPublisher<[Article], Error> {
+    func fetchArticles(period: Int) -> AnyPublisher<[Article], APIServiceError> {
         if debugMode {
             switch forceErrorType {
             case .invalidURL:
-                return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
+                return Fail(error: .invalidURL).eraseToAnyPublisher()
             case .unauthorized:
-                return Fail(error: APIError(message: "Unauthorized (401)"))
-                    .delay(for: .seconds(1), scheduler: DispatchQueue.main)
+                return Fail(error: .unauthorized)
+                    .delay(for: .seconds(3), scheduler: DispatchQueue.main)
                     .eraseToAnyPublisher()
             case .serverError:
-                return Fail(error: APIError(message: "Server Error (500)"))
-                    .eraseToAnyPublisher()
-            case .randomError:
-                return Fail(error: APIError(message: "Random Network Error"))
-                    .eraseToAnyPublisher()
+                return Fail(error: .serverError(statusCode: 500)).eraseToAnyPublisher()
+            case .decodingError:
+                return Fail(error: .decodingError(description: "Debug decoding error")).eraseToAnyPublisher()
+            case .networkError:
+                return Fail(error: .networkError(URLError(.notConnectedToInternet))).eraseToAnyPublisher()
+            case .unknownError:
+                return Fail(error: .unknownError).eraseToAnyPublisher()
             }
         }
         
-        
         guard let url = URL(string: baseURL) else {
-            return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
+            return Fail(error: .invalidURL).eraseToAnyPublisher()
         }
         
         var request = URLRequest(url: url)
@@ -58,31 +48,45 @@ final class NewsAPIService {
         components?.queryItems = [URLQueryItem(name: "period", value: "\(period)")]
         
         guard let finalURL = components?.url else {
-            return Fail(error: APIError(message: "Invalid URL components")).eraseToAnyPublisher()
+            return Fail(error: .invalidURL).eraseToAnyPublisher()
         }
         
         request.url = finalURL
         
         return URLSession.shared.dataTaskPublisher(for: request)
+            .mapError { error -> APIServiceError in
+                return .networkError(error)
+            }
             .tryMap { data, response -> Data in
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    throw APIError(message: "Invalid response")
+                    throw APIServiceError.unknownError
                 }
                 
-                if httpResponse.statusCode == 401 {
-                    throw APIError(message: "Unauthorized")
+                switch httpResponse.statusCode {
+                case 200...299:
+                    return data
+                case 401:
+                    throw APIServiceError.unauthorized
+                case 400...499:
+                    throw APIServiceError.serverError(statusCode: httpResponse.statusCode)
+                case 500...599:
+                    throw APIServiceError.serverError(statusCode: httpResponse.statusCode)
+                default:
+                    throw APIServiceError.unknownError
                 }
-                
-                if !(200...299).contains(httpResponse.statusCode) {
-                    throw APIError(message: "Server error: \(httpResponse.statusCode)")
-                }
-                
-                return data
             }
             .decode(type: NYTimesResponse.self, decoder: JSONDecoder())
+            .mapError { error -> APIServiceError in
+                switch error {
+                case let apiError as APIServiceError:
+                    return apiError
+                case let decodingError as DecodingError:
+                    return .decodingError(description: decodingError.localizedDescription)
+                default:
+                    return .unknownError
+                }
+            }
             .map { response in
-                
-                
                 response.results.map { result in
                     Article(
                         id: String(result.id),

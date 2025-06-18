@@ -21,13 +21,14 @@ struct ContentView: View {
                 articleList
                     .navigationBarTitle("News", displayMode: .large)
                     .background(.backgroundPrimary)
+                
                     .alert("Error", isPresented: $viewModel.showAlert) {
                         Button("OK", role: .cancel) { }
                     } message: {
                         Text(viewModel.alertMessage)
                     }
                     .alert(viewModel.blockAlertTitle, isPresented: $viewModel.showBlockAlert) {
-                        Button(viewModel.blockAlertTitle.components(separatedBy: " ").first ?? "Confirm",
+                        Button(viewModel.blockAlertButtonTitle,
                                role: .destructive) {
                             viewModel.blockAlertAction?()
                         }
@@ -87,7 +88,6 @@ struct ContentView: View {
                 Spacer()
                     .frame(maxHeight: .infinity)
             }
-//            .frame(height: showButton ? 132 : 76)
             .padding(.top, 100)
     }
     
