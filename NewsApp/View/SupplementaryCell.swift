@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SupplementaryCell: View {
-    let item: SupplementaryItem
+    let item: SupplementaryBlock
     var action: (() -> Void)? = nil
     
     var body: some View {
@@ -47,7 +47,7 @@ struct SupplementaryCell: View {
 }
 
 #Preview {
-    SupplementaryCell(item: SupplementaryItem(
+    SupplementaryCell(item: SupplementaryBlock(
         id: 1,
         title: "All News in One Place",
         subtitle: nil,

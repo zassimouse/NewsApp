@@ -6,14 +6,13 @@
 //
 
 import Foundation
-import SwiftUI
 
 struct Article: Identifiable {
     let id: String
     let title: String
     let description: String
     let category: String
-    let date: String
+    let date: Date
     let imageURLString: String
     let URLString: String
     var isFavorite: Bool

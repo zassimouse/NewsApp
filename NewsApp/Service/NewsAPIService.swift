@@ -30,13 +30,12 @@ final class NewsAPIService {
     
     func fetchArticles(period: Int) -> AnyPublisher<[Article], Error> {
         if debugMode {
-            // Return a mock error for testing
             switch forceErrorType {
             case .invalidURL:
                 return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
             case .unauthorized:
                 return Fail(error: APIError(message: "Unauthorized (401)"))
-                    .delay(for: .seconds(1), scheduler: DispatchQueue.main) // Simulate network delay
+                    .delay(for: .seconds(1), scheduler: DispatchQueue.main)
                     .eraseToAnyPublisher()
             case .serverError:
                 return Fail(error: APIError(message: "Server Error (500)"))
@@ -82,13 +81,15 @@ final class NewsAPIService {
             }
             .decode(type: NYTimesResponse.self, decoder: JSONDecoder())
             .map { response in
+                
+                
                 response.results.map { result in
                     Article(
                         id: String(result.id),
                         title: result.title,
                         description: result.abstract,
                         category: result.section,
-                        date: result.published_date.formattedDate() ?? result.published_date,
+                        date: result.published_date.toDate(),
                         imageURLString: result.media.first?.mediaMetadata.first?.url ?? "",
                         URLString: result.url,
                         isFavorite: false,

@@ -8,22 +8,13 @@
 import Foundation
 import Combine
 
-struct SupplementaryItem: Codable, Identifiable {
-    let id: Int
-    let title: String
-    let subtitle: String?
-    let title_symbol: String?
-    let button_title: String
-    let button_symbol: String?
-}
-
 final class SupplementaryAPIService {
     static let shared = SupplementaryAPIService()
     private let baseURL = "https://us-central1-server-side-functions.cloudfunctions.net/supplementary"
     
     private init() { }
     
-    func fetchSupplementaryItems() -> AnyPublisher<[SupplementaryItem], Error> {
+    func fetchSupplementaryItems() -> AnyPublisher<[SupplementaryBlock], Error> {
         guard let url = URL(string: baseURL) else {
             return Fail(error: APIError(message: "Invalid URL")).eraseToAnyPublisher()
         }
@@ -54,5 +45,5 @@ final class SupplementaryAPIService {
 }
 
 struct SupplementaryResponse: Codable {
-    let results: [SupplementaryItem]
+    let results: [SupplementaryBlock]
 }

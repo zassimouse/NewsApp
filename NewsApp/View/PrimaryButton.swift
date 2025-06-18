@@ -39,5 +39,5 @@ struct PrimaryButton: View {
 }
 
 #Preview {
-    PrimaryButton(title: "Button", symbolName: "arrow.up", action: { print("hi")})
+    PrimaryButton(title: "Button", symbolName: "arrow.up", action: {})
 }

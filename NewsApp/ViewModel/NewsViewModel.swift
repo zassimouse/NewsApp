@@ -8,51 +8,88 @@
 import SwiftUI
 import Combine
 
-class NewsViewModel: ObservableObject {
+final class NewsViewModel: ObservableObject {
+    
+    enum FilterOption: Int, CaseIterable {
+        case all
+        case favorites
+        case blocked
+        
+        var title: String {
+            switch self {
+            case .all: return "All"
+            case .favorites: return "Favorites"
+            case .blocked: return "Blocked"
+            }
+        }
+    }
+    
+    let apiService = NewsAPIService.shared
+    let supplementaryAPIService = SupplementaryAPIService.shared
+    
     @Published private(set) var articles: [Article] = []
     @Published private(set) var filteredArticles: [Article] = []
-    @Published private(set) var supplementaryItems: [SupplementaryItem] = []
-
-    @Published var selectedOption: Int = 0 {
+    @Published private(set) var supplementaryItems: [SupplementaryBlock] = []
+    
+    @Published var selectedOption: FilterOption = .all {
         didSet {
             applyFilter()
         }
     }
-    @Published var isLoading = true
-    @Published var isPresentingAlert = false
+    
+    @Published var isLoadingNews = true
     @Published var isLoadingSupplementary = false
     
     @Published var errorMessage: String?
     @Published var isShowingCellAlert = false
-
     
     @Published var showAlert = false
     @Published var alertMessage = ""
     
+    @Published var showBlockAlert = false
+    @Published var blockAlertTitle = ""
+    @Published var blockAlertMessage = ""
+    @Published var blockAlertAction: (() -> Void)?
+    
     var shouldShowBlur: Bool {
-        isPresentingAlert || isLoading || showAlert || isShowingCellAlert
+        isLoadingNews || showAlert || showBlockAlert
     }
     
     private var cancellables = Set<AnyCancellable>()
-    
-    let options = ["All", "Favorites", "Blocked"]
-    let apiService = NewsAPIService.shared
-    let supplementaryAPIService = SupplementaryAPIService.shared
 
-    
     init() {
-        loadSupplementaryItems()
+        loadNews()
+    }
+    
+    func loadNews() {
+        loadSupplementaryBlocks()
         loadArticles(period: 7)
     }
     
+    func presentBlockAlert(for article: Article) {
+        if article.isBlocked {
+            blockAlertTitle = "Do you want to unblock?"
+            blockAlertMessage = "Confirm to unblock this news source"
+        } else {
+            blockAlertTitle = "Do you want to block?"
+            blockAlertMessage = "Confirm to hide this news source"
+        }
+        
+        blockAlertAction = { [weak self] in
+            self?.toggleBlock(for: article.id)
+        }
+        
+        showBlockAlert = true
+    }
+    
     func loadArticles(period: Int) {
-        isLoading = true
+        isLoadingNews = true
         errorMessage = nil
         
         apiService.fetchArticles(period: period)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
-                self?.isLoading = false
+                self?.isLoadingNews = false
                 switch completion {
                 case .failure(let error):
                     self?.alertMessage = error.localizedDescription
@@ -64,11 +101,18 @@ class NewsViewModel: ObservableObject {
             } receiveValue: { [weak self] articles in
                 self?.articles = articles
                 self?.applyFilter()
+                
+                // Print name and image URL for each article
+                for article in articles {
+                    print("Article Name: \(article.title)")
+                    print("Image URL: \(article.imageURLString)")
+                    print("------")
+                }
             }
             .store(in: &cancellables)
     }
     
-    func loadSupplementaryItems() {
+    func loadSupplementaryBlocks() {
         isLoadingSupplementary = true
         
         supplementaryAPIService.fetchSupplementaryItems()
@@ -86,27 +130,34 @@ class NewsViewModel: ObservableObject {
     
     private func applyFilter() {
         switch selectedOption {
-        case 1: // Favorites
-            filteredArticles = articles.filter { $0.isFavorite && !$0.isBlocked }
-        case 2: // Blocked
-            filteredArticles = articles.filter { $0.isBlocked }
-        default: // All
+        case .all:
             filteredArticles = articles.filter { !$0.isBlocked }
+        case .favorites:
+            filteredArticles = articles.filter { $0.isFavorite && !$0.isBlocked }
+        case .blocked:
+            filteredArticles = articles.filter { $0.isBlocked }
         }
+        
+        filteredArticles.sort { $0.date > $1.date }
+    }
+    
+    private func dateFromString(_ dateString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMM d, yyyy"
+        return dateFormatter.date(from: dateString)
     }
     
     func toggleFavorite(for articleId: String) {
         if let index = articles.firstIndex(where: { $0.id == articleId }) {
             articles[index].isFavorite.toggle()
-            applyFilter() // Re-filter after change
+            applyFilter()
         }
     }
     
     func toggleBlock(for articleId: String) {
-        print("block toggled")
         if let index = articles.firstIndex(where: { $0.id == articleId }) {
             articles[index].isBlocked.toggle()
-            applyFilter() // Re-filter after change
+            applyFilter()
         }
     }
 }

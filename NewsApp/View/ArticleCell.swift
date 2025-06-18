@@ -15,7 +15,12 @@ struct ArticleCell: View {
     let article: Article
     @ObservedObject var viewModel: NewsViewModel
     
-    var body: some View {
+    private var isValidURL: Bool {
+        guard let url = URL(string: article.URLString) else { return false }
+        return UIApplication.shared.canOpenURL(url)
+    }
+    
+    private var content: some View {
         HStack(alignment: .top) {
             KFImage(URL(string: article.imageURLString))
                 .resizable()
@@ -23,6 +28,7 @@ struct ArticleCell: View {
                 .scaledToFill()
                 .frame(width: 94, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
+            
             VStack(alignment: .leading) {
                 Text(article.title)
                     .font(.system(size: 17, weight: .bold))
@@ -32,14 +38,28 @@ struct ArticleCell: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.labelSecondary)
                 Spacer()
-                Text("\(article.category) • \(article.date)")
+                Text("\(article.category) • \(article.date.toDisplayString())")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.labelSecondary)
             }
+        }
+    }
+    
+    var body: some View {
+        HStack(alignment: .top) {
+            if isValidURL {
+                Link(destination: URL(string: article.URLString)!) {
+                    content
+                }
+            } else {
+                content
+            }
+            
             Spacer()
+            
             Menu {
                 switch viewModel.selectedOption {
-                case 0:
+                case .all:
                     Button {
                         viewModel.toggleFavorite(for: article.id)
                     } label: {
@@ -50,16 +70,12 @@ struct ArticleCell: View {
                     }
                     
                     Button(role: .destructive) {
-                        blockAction = {
-                            print("block toggled cell")
-                            viewModel.toggleBlock(for: article.id)
-                        }
-                        showBlockAlert = true
+                        viewModel.presentBlockAlert(for: article)
                     } label: {
                         Label("Block", systemImage: "nosign")
                     }
                     
-                case 1:
+                case .favorites:
                     Button {
                         viewModel.toggleFavorite(for: article.id)
                     } label: {
@@ -67,30 +83,21 @@ struct ArticleCell: View {
                     }
                     
                     Button(role: .destructive) {
-                        blockAction = {
-                            viewModel.toggleBlock(for: article.id)
-                        }
-                        showBlockAlert = true
+                        viewModel.presentBlockAlert(for: article)
                     } label: {
                         Label("Block", systemImage: "nosign")
                     }
                     
-                case 2: // Blocked
-                    Button {
-                        blockAction = {
-                            viewModel.toggleBlock(for: article.id)
-                        }
-                        showBlockAlert = true
+                case .blocked:
+                    Button(role: .destructive) {
+                        viewModel.presentBlockAlert(for: article)
                     } label: {
                         Label("Unblock", systemImage: "lock.open")
                     }
-                    
-                default:
-                    EmptyView()
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.system(size: 24))
+                    .font(.system(size: 24, weight: .light))
                     .foregroundStyle(.labelSecondary)
             }
         }
@@ -99,25 +106,8 @@ struct ArticleCell: View {
         .frame(height: 96)
         .background(.backgroundSecondary)
         .cornerRadius(16)
-        .alert(isPresented: $showBlockAlert) {
-             Alert(
-                 title: Text(article.isBlocked ? "Unblock Article" : "Block Article"),
-                 message: Text(article.isBlocked ? "Are you sure you want to unblock this article?" : "Are you sure you want to block this article?"),
-                 primaryButton: .destructive(Text(article.isBlocked ? "Unblock" : "Block")) {
-                     print("hi")
-                     blockAction?()
-                 },
-                 secondaryButton: .cancel() {
-                 }
-             )
-         }
-        
     }
 }
-
-//#Preview {
-//    ArticleCell()
-//}
 
 struct ArticleCell_Previews: PreviewProvider {
     static var previews: some View {
@@ -126,7 +116,7 @@ struct ArticleCell_Previews: PreviewProvider {
             title: "Bike season begins",
             description: "City bike shares are now open for the summer season",
             category: "City",
-            date: "Apr 17, 2025",
+            date: Date(),
             imageURLString: "https://static01.nyt.com/images/2025/04/18/multimedia/18biz-harvard-letter-bmwz/18biz-harvard-letter-bmwz-mediumThreeByTwo210.jpg",
             URLString: "",
             isFavorite: false,
@@ -139,5 +129,3 @@ struct ArticleCell_Previews: PreviewProvider {
         )
     }
 }
-
-
