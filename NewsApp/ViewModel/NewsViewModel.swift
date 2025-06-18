@@ -8,30 +8,6 @@
 import SwiftUI
 import Combine
 
-enum AlertError: String {
-    case somethingWentWrong = "Something went wrong"
-    case noInternetConnection = "No internet connection"
-    
-    static func fromAPIError(_ error: Error) -> AlertError {
-        if let apiError = error as? NewsAPIService.APIErrorType {
-            switch apiError {
-            case .networkError(let urlError) where urlError.code == .notConnectedToInternet:
-                return .noInternetConnection
-            default:
-                return .somethingWentWrong
-            }
-        } else if let apiError = error as? SupplementaryAPIService.APIError {
-            switch apiError {
-            case .networkError(let urlError) where urlError.code == .notConnectedToInternet:
-                return .noInternetConnection
-            default:
-                return .somethingWentWrong
-            }
-        }
-        return .somethingWentWrong
-    }
-}
-
 final class NewsViewModel: ObservableObject {
     
     enum FilterOption: Int, CaseIterable {
@@ -48,8 +24,30 @@ final class NewsViewModel: ObservableObject {
         }
     }
     
-    let apiService = NewsAPIService.shared
-    let supplementaryAPIService = SupplementaryAPIService.shared
+    enum AlertError: String {
+        case somethingWentWrong = "Something went wrong"
+        case noInternetConnection = "No internet connection"
+        
+        static func fromAPIError(_ error: Error) -> AlertError {
+            if let apiError = error as? APIServiceError {
+                switch apiError {
+                case .networkError(let urlError):
+                    switch urlError.code {
+                    case .notConnectedToInternet, .networkConnectionLost:
+                        return .noInternetConnection
+                    default:
+                        return .somethingWentWrong
+                    }
+                default:
+                    return .somethingWentWrong
+                }
+            }
+            return .somethingWentWrong
+        }
+    }
+    
+    let apiService = ArticleAPIService.shared
+    let supplementaryAPIService = SupplementaryBlockAPIService.shared
     
     @Published private(set) var articles: [Article] = []
     @Published private(set) var filteredArticles: [Article] = []
@@ -61,14 +59,13 @@ final class NewsViewModel: ObservableObject {
         }
     }
     
-    @Published var isLoadingNews = true
-    @Published var isLoadingSupplementary = false
+    @Published var isLoading = true
     
     @Published var errorMessage: String?
     @Published var isShowingCellAlert = false
     
-    @Published var showAlert = false
-    @Published var alertMessage = ""
+    @Published var showNetworkAlert = false
+    @Published var networkAlertMessage = ""
     
     @Published var showBlockAlert = false
     @Published var blockAlertTitle = ""
@@ -77,16 +74,17 @@ final class NewsViewModel: ObservableObject {
     @Published var blockAlertAction: (() -> Void)?
     
     var shouldShowBlur: Bool {
-        isLoadingNews || showAlert || showBlockAlert
+        isLoading || showNetworkAlert || showBlockAlert
     }
     
     private var cancellables = Set<AnyCancellable>()
-
+    
     init() {
         loadNews()
     }
     
     func loadNews() {
+        isLoading = true
         loadSupplementaryBlocks()
         loadArticles(period: 7)
     }
@@ -110,39 +108,35 @@ final class NewsViewModel: ObservableObject {
     }
     
     func loadArticles(period: Int) {
-        isLoadingNews = true
         errorMessage = nil
         
         apiService.fetchArticles(period: period)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
-                self?.isLoadingNews = false
+                self?.isLoading = false
                 switch completion {
                 case .failure(let error):
                     let alertError = AlertError.fromAPIError(error)
-                    self?.alertMessage = alertError.rawValue
-                    self?.showAlert = true
+                    self?.networkAlertMessage = alertError.rawValue
+                    self?.showNetworkAlert = true
                 case .finished:
                     break
                 }
             } receiveValue: { [weak self] articles in
-                self?.articles = articles
+                self?.articles = articles.sorted { $0.date > $1.date }
                 self?.applyFilter()
             }
             .store(in: &cancellables)
     }
     
     func loadSupplementaryBlocks() {
-        isLoadingSupplementary = true
-        
         supplementaryAPIService.fetchSupplementaryItems()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
-                self?.isLoadingSupplementary = false
                 if case .failure(let error) = completion {
                     let alertError = AlertError.fromAPIError(error)
-                    self?.alertMessage = alertError.rawValue
-                    self?.showAlert = true
+                    self?.networkAlertMessage = alertError.rawValue
+                    self?.showNetworkAlert = true
                 }
             } receiveValue: { [weak self] items in
                 self?.supplementaryItems = items

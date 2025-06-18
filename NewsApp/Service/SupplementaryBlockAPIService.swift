@@ -1,23 +1,23 @@
 //
-//  NewsAPIService.swift
+//  SupplementaryAPIService.swift
 //  NewsApp
 //
-//  Created by Denis Haritonenko on 15.06.25.
+//  Created by Denis Haritonenko on 16.06.25.
 //
 
 import Foundation
 import Combine
 
-final class NewsAPIService {
-    static let shared = NewsAPIService()
-    private let baseURL = "https://us-central1-server-side-functions.cloudfunctions.net/nytimes"
+final class SupplementaryBlockAPIService {
+    static let shared = SupplementaryBlockAPIService()
+    private let baseURL = "https://us-central1-server-side-functions.cloudfunctions.net/supplementary"
     
     private init() { }
     
     var debugMode: Bool = false
     var forceErrorType: APIServiceError = .networkError(URLError(.notConnectedToInternet))
     
-    func fetchArticles(period: Int) -> AnyPublisher<[Article], APIServiceError> {
+    func fetchSupplementaryItems() -> AnyPublisher<[SupplementaryBlock], APIServiceError> {
         if debugMode {
             switch forceErrorType {
             case .invalidURL:
@@ -44,15 +44,6 @@ final class NewsAPIService {
         var request = URLRequest(url: url)
         request.addValue("denis-haritonenko", forHTTPHeaderField: "authorization")
         
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "period", value: "\(period)")]
-        
-        guard let finalURL = components?.url else {
-            return Fail(error: .invalidURL).eraseToAnyPublisher()
-        }
-        
-        request.url = finalURL
-        
         return URLSession.shared.dataTaskPublisher(for: request)
             .mapError { error -> APIServiceError in
                 return .networkError(error)
@@ -67,15 +58,13 @@ final class NewsAPIService {
                     return data
                 case 401:
                     throw APIServiceError.unauthorized
-                case 400...499:
-                    throw APIServiceError.serverError(statusCode: httpResponse.statusCode)
-                case 500...599:
+                case 400...499, 500...599:
                     throw APIServiceError.serverError(statusCode: httpResponse.statusCode)
                 default:
                     throw APIServiceError.unknownError
                 }
             }
-            .decode(type: NYTimesResponse.self, decoder: JSONDecoder())
+            .decode(type: SupplementaryResponse.self, decoder: JSONDecoder())
             .mapError { error -> APIServiceError in
                 switch error {
                 case let apiError as APIServiceError:
@@ -86,48 +75,11 @@ final class NewsAPIService {
                     return .unknownError
                 }
             }
-            .map { response in
-                response.results.map { result in
-                    Article(
-                        id: String(result.id),
-                        title: result.title,
-                        description: result.abstract,
-                        category: result.section,
-                        date: result.published_date.toDate(),
-                        imageURLString: result.media.first?.mediaMetadata.first?.url ?? "",
-                        URLString: result.url,
-                        isFavorite: false,
-                        isBlocked: false
-                    )
-                }
-            }
+            .map { $0.results }
             .eraseToAnyPublisher()
     }
 }
 
-struct NYTimesResponse: Codable {
-    let status: String
-    let results: [NYTimesArticle]
-}
-
-struct NYTimesArticle: Codable {
-    let id: Int
-    let title: String
-    let abstract: String
-    let section: String
-    let published_date: String
-    let url: String
-    let media: [Media]
-    
-    struct Media: Codable {
-        let mediaMetadata: [MediaMetadata]
-        
-        enum CodingKeys: String, CodingKey {
-            case mediaMetadata = "media-metadata"
-        }
-    }
-    
-    struct MediaMetadata: Codable {
-        let url: String
-    }
+struct SupplementaryResponse: Codable {
+    let results: [SupplementaryBlock]
 }

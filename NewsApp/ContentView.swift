@@ -22,10 +22,10 @@ struct ContentView: View {
                     .navigationBarTitle("News", displayMode: .large)
                     .background(.backgroundPrimary)
                 
-                    .alert("Error", isPresented: $viewModel.showAlert) {
+                    .alert("Error", isPresented: $viewModel.showNetworkAlert) {
                         Button("OK", role: .cancel) { }
                     } message: {
-                        Text(viewModel.alertMessage)
+                        Text(viewModel.networkAlertMessage)
                     }
                     .alert(viewModel.blockAlertTitle, isPresented: $viewModel.showBlockAlert) {
                         Button(viewModel.blockAlertButtonTitle,
@@ -40,7 +40,7 @@ struct ContentView: View {
 
             blurOverlay
             
-            if viewModel.isLoadingNews {
+            if viewModel.isLoading {
                 ProgressView()
                     .scaleEffect(1.5)
             }
@@ -71,24 +71,27 @@ struct ContentView: View {
     
     @ViewBuilder
     private func emptyStateContent(icon: String, text: String, showButton: Bool) -> some View {
-            VStack {
-                Image(systemName: icon)
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundStyle(.accentPrimary)
-                Spacer()
-                Text(text)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(.labelPrimary)
-                if showButton {
-                    Spacer()
-                    PrimaryButton(title: "Refresh", symbolName: "arrow.clockwise", action: {
-                        viewModel.loadNews()
-                    })
-                }
-                Spacer()
-                    .frame(maxHeight: .infinity)
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 40, weight: .light))
+                .foregroundColor(.accentPrimary)
+            
+            Text(text)
+                .font(.headline)
+                .foregroundColor(.labelPrimary)
+                .multilineTextAlignment(.center)
+            
+            if showButton {
+                PrimaryButton(
+                    title: "Refresh",
+                    symbolName: "arrow.clockwise",
+                    action: { viewModel.loadNews() }
+                )
             }
-            .padding(.top, 100)
+            
+            Spacer()
+        }
+        .padding(.top, 80)
     }
     
     private var articleList: some View {
@@ -131,7 +134,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         ContentView()
     }
 }
